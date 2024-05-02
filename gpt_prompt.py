@@ -4,7 +4,7 @@ import json
 import requests
 
 #GPT Parameters
-openai.api_key = ''
+openai.api_key = ""
 
 #Claude Parameters
 API_ENDPOINT = "https://api.anthropic.com/v1/messages"
@@ -19,7 +19,7 @@ REQUEST_DATA = {
         {"role": "user", "content": ""}
     ],
     "model": "claude-3-haiku-20240307",
-    "max_tokens": 700
+    "max_tokens": 1500
 }
 
 def csv_to_array(csv_file_path):
@@ -38,7 +38,7 @@ data = csv_to_array('dataset.csv')
 
 def fetch_gpt4_response(prompt):
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-4-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
     return response['choices'][0]['message']['content']
@@ -62,8 +62,8 @@ end_prompt = ("Please offer one prediction, supported by justifications. Additio
             "supplementary symptom inquiries and recommend relevant lab tests to strengthen the confidence in your prediction.")
 round_2_prompt = "Please defend your prediction and refute the corresponding diagnosis performed by another large languge model: "
 round_3_prompt = "Please defend your prediction and refute the counterarguments presented by another large language model: "
-round_4_prompt = ("Given the information above, what is the most likely diagnosis. Furthermore, can you "
-                "recommend additional symptom inquiries and lab tests.")
+round_4_prompt = ("Given the debate context, what is the most likely diagnosis. Furthermore, can you "
+                "recommend additional symptom inquiries and lab tests. Context: ")
 
 def test_claude():
     response = fetch_claude_response("hello")
@@ -80,18 +80,19 @@ def test_debate():
     #Asking GPT to refute
     round_2_answer = fetch_gpt4_response(round_2_prompt + claude_response)
     #Asking Claude to refute
-    round_3_answer = fetch_claude_response(rount_3_prompt + round_2_answer)
+    round_3_answer = fetch_claude_response(round_3_prompt + round_2_answer)["content"][0]["text"]
     print(f"GPT-4 response: {round_2_answer}\n")
     print(f"Claude response: {round_3_answer}\n")
 
     #Asking for consensus from both LLMs
-    gpt4_final_answer = fetch_gpt4_response(round_4_prompt)
-    claude_final_answer = fetch_gpt4_response(round_4_prompt)
+    debate_context = ("GPT4 first prediction: " + gpt4_response + "Claude first prediction: " + claude_response + 
+                    "GPT4's rebuttal: " + round_2_answer + "Claude's rebuttal: " + round_3_answer)
+    gpt4_final_answer = fetch_gpt4_response(round_4_prompt + debate_context)
+    claude_final_answer = fetch_claude_response(round_4_prompt + debate_context)["content"][0]["text"]
     print(f"GPT-4 response: {gpt4_final_answer}\n")
     print(f"Claude response: {claude_final_answer}\n")
 
 test_debate()
-
 
 data = []
 for d in data:
