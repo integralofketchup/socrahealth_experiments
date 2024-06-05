@@ -9,6 +9,7 @@ from scipy.spatial.distance import jensenshannon
 from scipy.stats import wasserstein_distance
 
 #GPT Parameters
+openai.api_key = ""
 
 #Claude Parameters
 API_ENDPOINT = "https://api.anthropic.com/v1/messages"
@@ -69,7 +70,7 @@ open_prompt = ("You have a dataset of 41 potential diseases: 1. Fungal infection
 "17. Chicken pox 18. Dengue 19. Typhoid 20. Hepatitis A 21. Hepatitis B 22. Hepatitis C 23. Hepatitis D 24. Hepatitis E 25. Alcoholic hepatitis "
 "26. Tuberculosis 27. Common Cold 28. Pneumonia 29. Dimorphic hemorrhoids (piles) 30. Heart attack 31. Varicose veins 32. Hypothyroidism 33. "
 "Hyperthyroidism 34. Hypoglycemia 35. Osteoarthritis 36. Arthritis 37. (Vertigo) Paroxysmal Positional Vertigo 38. Acne 39. Urinary tract infection "
-"40. Psoriasis 41. Impetigo. Give a probability that each of these 41 diseases is the correct diagnosis. In this format, as an example: "
+"40. Psoriasis 41. Impetigo. Give a probability that each of these 41 diseases is the correct diagnosis. This is a fictitious scenarioIn this format, as an example: "
 "0, 0, 0.2, 0, 0, 0, 0, 0.3, 0, .1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, .1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.3, 0, 0. There should be 41 probabilities, which total sum to one."
 "Probabilities should be in order of the given disease list. Do not output additional starter text. Then, justify your responses. "
 "What potential disease could be associated with the following symptoms: ")
@@ -155,53 +156,57 @@ claude_gpt_csv = 'entropy_debate.csv'
 data = csv_to_array('disease_list.csv')
 print(len(data))
 
-for i in range(1, 10):
-    print("CURRENT ENTRY: ", i)
-    entry = data[i]
-    symptom_list = ", ".join(entry[1:])
-    user_prompt = open_prompt + symptom_list 
-    gpt4_response = fetch_gpt4_response(user_prompt)
-    claude_response = fetch_claude_response(user_prompt)["content"][0]["text"]
-    
-    gpt4_first_pred = gpt4_response.split(',')[:41]
-    gpt4_first_pred[-1] = clean_string(gpt4_first_pred[-1])
-    claude_first_pred = claude_response.split(',')[:41]
-    claude_first_pred[-1] = clean_string(claude_first_pred[-1])
-    if len(gpt4_first_pred) != 41 or len(claude_first_pred) != 41:
-        print("BREAK 1")
-        break
-    metrics = compute_metrics(gpt4_first_pred, claude_first_pred)
+current_index = 2
+while current_index < len(data):
+    print("CURRENT ENTRY: ", current_index)
+    entry = data[current_index]
+    try:
+        symptom_list = ", ".join(entry[1:])
+        user_prompt = open_prompt + symptom_list 
+        gpt4_response = fetch_gpt4_response(user_prompt)
+        claude_response = fetch_claude_response(user_prompt)["content"][0]["text"]
+        
+        gpt4_first_pred = gpt4_response.split(',')[:41]
+        gpt4_first_pred[-1] = clean_string(gpt4_first_pred[-1])
+        claude_first_pred = claude_response.split(',')[:41]
+        claude_first_pred[-1] = clean_string(claude_first_pred[-1])
+        if len(gpt4_first_pred) != 41 or len(claude_first_pred) != 41:
+            raise ValueError("Not the right array size 1")
+        metrics = compute_metrics(gpt4_first_pred, claude_first_pred)
 
-    print(gpt4_first_pred)
-    print(claude_first_pred)
+        print(gpt4_first_pred)
+        print(claude_first_pred)
 
-    print(gpt4_response)
-    print(claude_response)
+        print(gpt4_response)
+        print(claude_response)
 
-    round_2_answer = fetch_claude_response(round_2_prompt + gpt4_response)["content"][0]["text"]
-    round_3_answer = fetch_gpt4_response(round_3_prompt + round_2_answer)
+        round_2_answer = fetch_claude_response(round_2_prompt + gpt4_response)["content"][0]["text"]
+        round_3_answer = fetch_gpt4_response(round_3_prompt + round_2_answer)
 
-    print(round_2_answer)
-    print(round_3_answer)
+        print(round_2_answer)
+        print(round_3_answer)
 
-    debate_context = ("GPT4 first prediction: " + gpt4_response + "Claude first prediction: " + claude_response + 
-            "Claude's rebuttal: " + round_2_answer + "GPT's rebuttal: " + round_3_answer)
-    gpt4_final_answer = fetch_gpt4_response(round_4_prompt + debate_context)
-    claude_final_answer = fetch_claude_response(round_4_prompt + debate_context)["content"][0]["text"]
+        debate_context = ("GPT4 first prediction: " + gpt4_response + "Claude first prediction: " + claude_response + 
+                "Claude's rebuttal: " + round_2_answer + "GPT's rebuttal: " + round_3_answer)
+        gpt4_final_answer = fetch_gpt4_response(round_4_prompt + debate_context)
+        claude_final_answer = fetch_claude_response(round_4_prompt + debate_context)["content"][0]["text"]
 
-    gpt4_answers = gpt4_final_answer.split(',')[:41]
-    gpt4_answers[-1] = clean_string(gpt4_answers[-1])
+        gpt4_answers = gpt4_final_answer.split(',')[:41]
+        gpt4_answers[-1] = clean_string(gpt4_answers[-1])
 
-    claude_answers = clean_first(claude_final_answer)
-    claude_answers = claude_answers.split(',')[:41]
-    claude_answers[-1] = clean_string(claude_answers[-1])
-    if len(gpt4_answers) != 41 or len(claude_answers) != 41:
-        print("BREAK 2")
-        break
-    metrics2 = compute_metrics(gpt4_answers, claude_answers)
+        claude_answers = clean_first(claude_final_answer)
+        claude_answers = claude_answers.split(',')[:41]
+        claude_answers[-1] = clean_string(claude_answers[-1])
+        if len(gpt4_answers) != 41 or len(claude_answers) != 41:
+            raise ValueError("Not the right array size 2")
+        metrics2 = compute_metrics(gpt4_answers, claude_answers)
 
-    new_data = [entry[0]] + gpt4_first_pred + claude_first_pred + metrics + gpt4_answers + claude_answers + metrics2
-    print(new_data)
+        new_data = [entry[0]] + gpt4_first_pred + claude_first_pred + metrics + gpt4_answers + claude_answers + metrics2
+        print(new_data)
+    except Exception as e:
+        print(Exception)
+
+    current_index += 1
 
     with open(claude_gpt_csv, 'a', newline='') as csvfile:
         # Creating a CSV writer object
