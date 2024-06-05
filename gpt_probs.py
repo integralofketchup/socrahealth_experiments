@@ -203,17 +203,18 @@ while current_index < len(data):
 
         new_data = [entry[0]] + gpt4_first_pred + claude_first_pred + metrics + gpt4_answers + claude_answers + metrics2
         print(new_data)
+
+        current_index += 1
+        with open(claude_gpt_csv, 'a', newline='') as csvfile:
+            # Creating a CSV writer object
+            csvwriter = csv.writer(csvfile)
+            
+            # Writing the data to the CSV file
+            csvwriter.writerow(new_data)
     except Exception as e:
         print(Exception)
 
-    current_index += 1
 
-    with open(claude_gpt_csv, 'a', newline='') as csvfile:
-        # Creating a CSV writer object
-        csvwriter = csv.writer(csvfile)
-        
-        # Writing the data to the CSV file
-        csvwriter.writerow(new_data)
 
 
 # print(output) 
