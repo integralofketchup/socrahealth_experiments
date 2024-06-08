@@ -156,7 +156,15 @@ claude_gpt_csv = 'entropy_debate.csv'
 data = csv_to_array('disease_list.csv')
 print(len(data))
 
-current_index = 2
+def get_csv_length(file_path):
+    with open(file_path, mode='r', newline='') as file:
+        reader = csv.reader(file)
+        row_count = sum(1 for row in reader)
+    return row_count
+
+len_csv = get_csv_length('entropy_debate.csv')
+
+current_index = len_csv
 while current_index < len(data):
     print("CURRENT ENTRY: ", current_index)
     entry = data[current_index]
